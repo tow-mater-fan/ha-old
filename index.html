@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electronegativity Monopoly: Lab Edition (created by Anav Patel)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+        :root {
+            --gold: #ffcc00;
+            --dark-bg: #060608;
+            --tile-bg: #0f0f14;
+            --success: #2ed573;
+            --error: #ff4757;
+            --warning: #ffa502;
+            --border: #2a2a38;
+            --muted: #888;
+            --text: #e8e8f0;
+            --tile-size: clamp(40px, 9vmin, 85px);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Syne', sans-serif;
+            background-color: var(--dark-bg);
+            background: radial-gradient(circle at center, rgba(255,204,0,0.06) 0%, #000 100%);
+            transition: background 0.5s ease;
+            color: var(--text);
+            margin: 0; display: flex; flex-direction: column;
+            align-items: center;
+            height: auto; min-height: 100vh; overflow-x: hidden; overflow-y: auto;
+        }
+
+        /* --- Refresh Warning --- */
+        #refresh-warning {
+            width: 100%; background: var(--error); color: black;
+            text-align: center; font-weight: 700; font-size: 0.75rem;
+            padding: 5px 0; z-index: 9999;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 0.05em;
+        }
+
+        /* --- Timer Console --- */
+        #top-console {
+            background: rgba(0,0,0,0.85);
+            border: 1px solid var(--gold);
+            padding: 15px; border-radius: 8px;
+            font-family: 'Space Mono', monospace;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.12);
+            text-align: center; margin-bottom: 15px; flex-shrink: 0;
+        }
+        #turn-timer-display { font-size: 1.8rem; color: var(--error); font-weight: 700; display: block; letter-spacing: 0.05em; }
+        #game-timer-display { font-size: 1.1rem; color: var(--gold); margin-top: 5px; display: none; letter-spacing: 0.05em; }
+        #goal-display { font-size: 0.8rem; color: var(--muted); margin-top: 5px; letter-spacing: 0.15em; text-transform: uppercase; }
+
+        /* --- Start Screen --- */
+        #start-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 40%, #0f0f18 0%, #000 100%);
+            z-index: 5000; display: flex; justify-content: center; align-items: center;
+        }
+        .start-box {
+            background: #0a0a0f;
+            padding: 40px;
+            border: 2px solid var(--gold);
+            border-radius: 12px;
+            width: 90%; max-width: 650px;
+            text-align: center;
+            max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 0 60px rgba(255,204,0,0.08);
+        }
+        .start-box h1 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 2rem;
+            letter-spacing: -0.5px;
+        }
+        .start-box h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .instructions {
+            background: #0e0e16;
+            padding: 28px 30px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1rem;
+            margin: 20px 0;
+            border-top: 3px solid var(--gold);
+            border-bottom: 3px solid var(--gold);
+            line-height: 1.7;
+            min-height: 120px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.3s ease;
+            color: #ccc;
+        }
+
+        input, select {
+            width: 100%; padding: 12px; margin: 10px 0;
+            background: #05050a;
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+            font-family: 'Syne', sans-serif;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--gold); }
+
+        .player-setup-row {
+            display: flex; gap: 15px; align-items: center;
+            margin-bottom: 12px;
+            background: #0e0e16;
+            padding: 10px; border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .player-setup-row input[type="color"] { width: 60px; height: 50px; padding: 0; border: none; border-radius: 5px; cursor: pointer; background: transparent; margin: 5px 0 0 0; }
+        .player-setup-row input[type="text"] { margin: 0; flex-grow: 1; border: 1px solid #3a3a4a; }
+
+        .setup-section {
+            background: #0e0e16;
+            padding: 16px; border-radius: 8px;
+            margin-bottom: 18px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+        .setup-label {
+            color: var(--gold);
+            font-weight: 700;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* --- Board --- */
+        #main-container {
+            display: none; width: 100%; height: auto; min-height: 100vh;
+            justify-content: center; align-items: center;
+            gap: 40px; padding: 20px; box-sizing: border-box; flex-wrap: wrap;
+        }
+
+        #board-grid {
+            display: grid;
+            grid-template-columns: repeat(8, var(--tile-size));
+            grid-template-rows: repeat(8, var(--tile-size));
+            gap: 5px; padding: 10px;
+            background: #000;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .tile {
+            background: var(--tile-bg);
+            border-radius: 5px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: clamp(0.48rem, 1.15vmin, 0.65rem);
+            font-family: 'Space Mono', monospace;
+            position: relative;
+            transition: all 0.4s ease;
+            border: 1px solid var(--border);
+            text-align: center;
+            line-height: 1.3;
+            padding: 3px 2px;
+            overflow: hidden;
+            word-break: normal;
+            overflow-wrap: normal;
+            white-space: nowrap;
+        }
+        .tile strong {
+            font-size: clamp(0.85rem, 2.2vmin, 1.2rem);
+            color: var(--gold);
+            display: block;
+            line-height: 1.05;
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .tile > div:not(.fine-text):not(.level-text) {
+            color: #b0b0c8;
+            font-size: clamp(0.48rem, 1.1vmin, 0.62rem);
+        }
+        .tile .fine-text {
+            color: var(--error);
+            font-weight: 700;
+            margin-top: 1px;
+            font-size: clamp(0.48rem, 1.1vmin, 0.62rem);
+        }
+        .tile.blank { visibility: hidden; }
+        .tile.mystery {
+            white-space: normal;
+        }
+        .tile.mystery strong {
+            font-size: clamp(0.5rem, 1.2vmin, 0.7rem) !important;
+            color: var(--warning) !important;
+            white-space: nowrap;
+            letter-spacing: -0.06em;
+            font-family: 'Space Mono', monospace !important;
+            font-weight: 700 !important;
+        }
+        /* level badge — override the hardcoded 0.75rem from JS */
+        .tile .level-text {
+            font-size: clamp(0.42rem, 1vmin, 0.58rem) !important;
+            padding: 1px 3px !important;
+            margin-top: 1px !important;
+        }
+
+        .token { width: clamp(14px, 3vmin, 22px); height: clamp(14px, 3vmin, 22px); border-radius: 50%; position: absolute; border: 2px solid rgba(255,255,255,0.8); z-index: 100; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 4px 12px rgba(0,0,0,0.7); }
+
+        /* --- Dice --- */
+        .dice-box {
+            width: 80px; height: 80px;
+            background: #f0f0f0;
+            border-radius: 12px;
+            margin: 0 auto 15px auto;
+            position: relative;
+            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+            padding: 8px; box-sizing: border-box; flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .dot { background: #1a1a2e; border-radius: 50%; width: 14px; height: 14px; align-self: center; justify-self: center; visibility: hidden; }
+        [data-face="1"] .d5 { visibility: visible; }
+        [data-face="2"] .d1, [data-face="2"] .d9 { visibility: visible; }
+        [data-face="3"] .d1, [data-face="3"] .d5, [data-face="3"] .d9 { visibility: visible; }
+        [data-face="4"] .d1, [data-face="4"] .d3, [data-face="4"] .d7, [data-face="4"] .d9 { visibility: visible; }
+        [data-face="5"] .d1, [data-face="5"] .d3, [data-face="5"] .d5, [data-face="5"] .d7, [data-face="5"] .d9 { visibility: visible; }
+        [data-face="6"] .d1, [data-face="6"] .d3, [data-face="6"] .d4, [data-face="6"] .d7, [data-face="6"] .d9 { visibility: visible; }
+        .dice-rolling { animation: tumble 0.15s infinite linear; }
+        @keyframes tumble { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Side Panel & Ledger --- */
+        #side-panel { width: 350px; display: flex; flex-direction: column; height: 90vh; }
+
+        #side-panel h2 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.02em;
+        }
+
+        #ledger {
+            display: flex; flex-direction: column; gap: 6px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px;
+            margin-top: 10px; margin-bottom: 10px;
+            flex-grow: 1; overflow-y: auto; overflow-x: hidden; padding-right: 5px;
+        }
+        #ledger::-webkit-scrollbar { width: 4px; }
+        #ledger::-webkit-scrollbar-track { background: transparent; }
+        #ledger::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
+
+        .ledger-item {
+            min-height: 40px; display: flex; flex-direction: column; justify-content: center;
+            padding: 10px 12px; border-radius: 6px;
+            transition: all 0.3s ease; position: relative; box-sizing: border-box;
+            font-family: 'Syne', sans-serif;
+        }
+        .ledger-item > div:first-child { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; line-height: 1.2; margin-bottom: 4px; }
+        .rank-badge { font-size: 0.9rem; color: #fff; font-weight: 400; font-family: 'Space Mono', monospace; }
+
+        /* --- Animations --- */
+        .main-anim-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 10000; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .main-anim {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.8rem;
+            text-shadow: 0 4px 20px rgba(0,0,0,1);
+            animation: burstUp 5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            background: rgba(6, 6, 8, 0.92);
+            padding: 15px 40px;
+            border-radius: 10px;
+            border: 2px solid white;
+            text-align: center;
+            letter-spacing: -0.5px;
+        }
+        .main-anim.minus { color: var(--error); border-color: var(--error); }
+        .main-anim.plus  { color: var(--success); border-color: var(--success); }
+        .main-anim.gold  { color: var(--gold); border-color: var(--gold); }
+        @keyframes burstUp {
+            0%   { transform: scale(0.5) translateY(50px); opacity: 0; }
+            10%  { transform: scale(1.1) translateY(0px); opacity: 1; }
+            90%  { transform: scale(1) translateY(-20px); opacity: 1; }
+            100% { transform: scale(1) translateY(-60px); opacity: 0; }
+        }
+
+        /* --- Modals --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.88);
+            z-index: 10000; justify-content: center; align-items: center;
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            background: #09090e;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--gold);
+            width: 90%; max-width: 450px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            font-family: 'Syne', sans-serif;
+        }
+        .modal-content h2 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            font-size: 1.4rem;
+        }
+        .modal-success { border-color: var(--success) !important; box-shadow: 0 0 40px rgba(46, 213, 115, 0.2) !important; }
+        .modal-error   { border-color: var(--error) !important;   box-shadow: 0 0 40px rgba(255, 71, 87, 0.2) !important; }
+        .modal-warning { border-color: var(--warning) !important; box-shadow: 0 0 40px rgba(255, 165, 2, 0.2) !important; }
+
+        #alert-modal   { z-index: 11000 !important; }
+        #confirm-modal { z-index: 12000 !important; }
+
+        /* --- Buttons --- */
+        .btn {
+            width: 100%; padding: 14px; margin-top: 10px;
+            border: none; border-radius: 7px;
+            font-weight: 700; cursor: pointer;
+            text-transform: uppercase;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            letter-spacing: 0.12em;
+            transition: transform 0.1s ease, opacity 0.2s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-gold {
+            background: var(--gold); color: #000;
+            box-shadow: 0 4px 20px rgba(255,204,0,0.2);
+        }
+        .btn-gold:hover { background: #ffe033; }
+        .btn-dark {
+            background: #141420; color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-dark:hover { background: #1e1e2e; border-color: #444; }
+        .btn-danger { background: var(--error); color: white; border: 1px solid #900; }
+        .btn-danger:hover { background: #ff6b81; }
+
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-gold:disabled { background: #7a6200; color: #888; }
+
+        /* --- Calculator & Lab --- */
+        .calc-container {
+            background: #0e0e16;
+            padding: 15px; border-radius: 10px;
+            border: 1px solid var(--border);
+            width: 100%; max-width: 280px; box-sizing: border-box;
+        }
+        #calc-screen {
+            width: 100%; height: 48px;
+            background: #000; color: #00ff88;
+            text-align: right; padding: 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 1.3rem;
+            border: 1px solid #1a2a1a;
+            margin-bottom: 10px; box-sizing: border-box; outline: none;
+            border-radius: 4px;
+        }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .c-btn {
+            height: 44px;
+            background: #141420; color: var(--text);
+            border: 1px solid var(--border); border-radius: 5px;
+            cursor: pointer; font-weight: 700;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .c-btn:hover { background: #1e1e2e; }
+
+        .lab-item {
+            padding: 12px; border: 1px solid var(--border);
+            margin-bottom: 6px; border-radius: 6px;
+            cursor: pointer; display: flex; justify-content: space-between;
+            transition: all 0.2s;
+            background: #07070c;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .lab-item:hover { background: #0f0f1a; border-color: #444; }
+        .lab-item-selected {
+            border: 2px solid var(--gold);
+            background: var(--gold); color: black;
+            transform: scale(1.02); font-weight: 700;
+            box-shadow: 0 4px 16px rgba(255, 204, 0, 0.25);
+        }
+
+        #lab-equation-display {
+            background: #000; border: 1px dashed #2a2a3a;
+            padding: 15px; margin-bottom: 15px; border-radius: 8px;
+            text-align: center;
+            font-family: 'Space Mono', monospace;
+            font-size: 1rem; color: #aaa;
+            min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            line-height: 1.6;
+        }
+
+        .assist-label { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 5px; color: #aaa; font-size: 0.9rem; font-family: 'Space Mono', monospace; }
+        .assist-label input { width: auto; margin: 0; accent-color: var(--gold); }
+
+        /* --- Scrollbar in lab rules modal --- */
+        #rules-content::-webkit-scrollbar { width: 4px; }
+        #rules-content::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
+        #rules-content::-webkit-scrollbar-track { background: transparent; }
+
+        /* --- Leaderboard list --- */
+        #leaderboard-list::-webkit-scrollbar { width: 4px; }
+        #leaderboard-list::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
+
+        /* --- Lab-history list --- */
+        #lab-history-list { font-family: 'Space Mono', monospace; font-size: 0.8rem; }
+
+        @media (max-width: 1000px) {
+            #main-container { flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 10px; }
+            #side-panel { width: 100%; max-width: 500px; height: auto; min-height: unset; margin-bottom: 20px; }
+            #board-grid { margin-bottom: 20px; }
+            #lab-modal .modal-content { display: flex !important; flex-direction: column; }
+            .calc-container { margin: 0 auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="refresh-warning">⚠️ DO NOT REFRESH THE PAGE OR ALL RESEARCH DATA WILL BE LOST ⚠️</div>
+
+<div id="start-screen">
+    <div class="start-box" id="intro-box">
+        <h1 style="color: var(--gold); margin: 0;">Electronegativity Monopoly</h1>
+        <h3 style="color: #aaa; margin: 5px 0;">Created for use In Dr.Loney's Classroom</h3>
+        <div id="slide-container" class="instructions"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+            <button id="prev-btn" class="btn btn-dark" style="width: auto; padding: 12px 20px; display: none;" onclick="prevSlide()">⬅ Previous</button>
+            <span id="slide-progress" style="color: #666; font-weight: bold; flex-grow: 1; text-align: center;"></span>
+            <button id="slide-btn" class="btn btn-gold" style="width: auto; padding: 12px 30px;" onclick="nextSlide()">Next Rule ➔</button>
+        </div>
+    </div>
+
+    <div class="start-box" id="setup-box" style="display: none;">
+        <h1 style="color: var(--gold); margin: 0 0 20px 0;">Game Settings</h1>
+        
+        <div class="setup-section">
+            <span class="setup-label">1. Number of Scientists</span>
+            <select id="player-count" onchange="updatePlayerInputs(); updateWinSettingsUI();">
+                <option value="2">2 Players</option><option value="3">3 Players</option><option value="4" selected>4 Players</option>
+                <option value="5">5 Players</option><option value="6">6 Players</option>
+            </select>
+        </div>
+
+        <div class="setup-section">
+            <span class="setup-label">2. Experiment Goal</span>
+            <select id="win-condition-slide" onchange="updateWinSettingsUI()">
+                <option value="score">Max Composite Score (ΔEN + Gold)</option>
+                <option value="time">Time Limit (Minutes)</option>
+                <option value="turns">Turn Limit (Rounds)</option>
+            </select>
+            
+            <div id="score-presets-container">
+                <select id="score-preset" onchange="updateWinSettingsUI()">
+                    <option value="6.0">Quick Game (6.0 Max Composite)</option>
+                    <option value="10.0" selected>Average Game (10.0 Max Composite)</option>
+                    <option value="15.0">Long Game (15.0 Max Composite)</option>
+                    <option value="custom">Custom Value</option>
+                </select>
+            </div>
+
+            <input type="number" id="win-val-slide" value="10" style="display:none; text-align: center;">
+            
+            <div id="time-estimate" style="margin-top:10px; color:var(--success); font-weight:bold; font-size:0.9rem; text-align: center;"></div>
+        </div>
+
+        <div class="setup-section">
+            <span class="setup-label">3. Scientist Credentials</span>
+            <div id="name-inputs">
+                <div class="player-setup-row" id="p-row-0">
+                    <div style="text-align: center; font-size: 0.8rem; color: #bbb; font-weight: bold;">Color (changeable)<br><input type="color" class="p-color-in" value="#f1c40f"></div>
+                    <input type="text" class="p-name-in" placeholder="Scientist 1 Name" maxlength="20">
+                </div>
+                <div class="player-setup-row" id="p-row-1">
+                    <div style="text-align: center; font-size: 0.8rem; color: #bbb; font-weight: bold;">Color (changeable)<br><input type="color" class="p-color-in" value="#9b59b6"></div>
+                    <input type="text" class="p-name-in" placeholder="Scientist 2 Name" maxlength="20">
+                </div>
+                <div class="player-setup-row" id="p-row-2">
+                    <div style="text-align: center; font-size: 0.8rem; color: #bbb; font-weight: bold;">Color (changeable)<br><input type="color" class="p-color-in" value="#e67e22"></div>
+                    <input type="text" class="p-name-in" placeholder="Scientist 3 Name" maxlength="20">
+                </div>
+                <div class="player-setup-row" id="p-row-3">
+                    <div style="text-align: center; font-size: 0.8rem; color: #bbb; font-weight: bold;">Color (changeable)<br><input type="color" class="p-color-in" value="#1abc9c"></div>
+                    <input type="text" class="p-name-in" placeholder="Scientist 4 Name" maxlength="20">
+                </div>
+                <div class="player-setup-row" id="p-row-4" style="display:none;">
+                    <div style="text-align: center; font-size: 0.8rem; color: #bbb; font-weight: bold;">Color (changeable)<br><input type="color" class="p-color-in" value="#3498db"></div>
+                    <input type="text" class="p-name-in" placeholder="Scientist 5 Name" maxlength="20">
+                </div>
+                <div class="player-setup-row" id="p-row-5" style="display:none;">
+                    <div style="text-align: center; font-size: 0.8rem; color: #bbb; font-weight: bold;">Color (changeable)<br><input type="color" class="p-color-in" value="#e74c3c"></div>
+                    <input type="text" class="p-name-in" placeholder="Scientist 6 Name" maxlength="20">
+                </div>
+            </div>
+            <div id="name-error-msg" style="color: var(--error); display: none; font-weight: bold; margin-bottom: 10px; text-align: center;">⚠️ Please enter names for all selected scientists.</div>
+        </div>
+
+        <div class="setup-section" style="margin-bottom: 20px;">
+            <span class="setup-label">4. Game Realism</span>
+            <select id="realism-setting">
+                <option value="realistic" selected>Realistic (No Metal-Metal Bonds)</option>
+                <option value="experimental">Experimental (Allow Metal-Metal Bonds)</option>
+            </select>
+            <div style="margin-top: 8px; color: #aaa; font-size: 0.85rem; line-height: 1.4;">
+                <b>Realistic:</b> Strictly follows chemical rules; bonding two metals is prohibited.<br>
+                <b>Experimental:</b> Ignores standard rules; metallic compounds are permitted.
+            </div>
+        </div>
+        
+        <button class="btn btn-gold" onclick="initGame()">Start Experiment</button>
+    </div>
+</div>
+
+<div id="main-container">
+    <div id="board-grid"></div>
+    <div id="side-panel">
+        <div id="top-console">
+            <div id="turn-timer-display">TURN: 45s</div>
+            <div id="game-timer-display">GAME: 00:00</div>
+            <div id="goal-display">GOAL: --</div>
+        </div>
+
+        <div id="dice-view" class="dice-box" data-face="1">
+            <div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div>
+            <div class="dot d4"></div><div class="dot d5"></div><div class="dot d6"></div>
+            <div class="dot d7"></div><div class="dot d8"></div><div class="dot d9"></div>
+        </div>
+        
+        <div style="text-align:center; flex-shrink: 0;">
+            <h2 id="current-player-display" style="margin: 0 0 10px 0;">---</h2>
+            <button id="roll-btn" class="btn btn-gold" onclick="handleRoll()">Start Element Roll</button>
+        </div>
+
+        <div id="ledger"></div>
+        
+        <div style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+            <button id="lab-btn" class="btn btn-dark" style="margin-top:0;" onclick="openLab()">Enter Laboratory</button>
+            <button id="rules-btn" class="btn btn-dark" style="margin-top:0;" onclick="openRulesModal()">View Rules and Instructions</button>
+            <button class="btn btn-danger" style="margin-top:0;" onclick="enqueueModal(() => { document.getElementById('confirm-modal').style.display='flex'; })">End Game Early</button>
+        </div>
+    </div>
+</div>
+
+<div id="rules-modal" class="modal-overlay" style="z-index: 10700;">
+    <div class="modal-content" style="max-width: 600px; text-align: left;">
+        <h2 style="color: var(--gold); margin-top:0; text-align: center;">Experiment Rules</h2>
+        <div id="rules-content" style="max-height: 60vh; overflow-y: auto; padding-right: 10px; font-size: 0.95rem; line-height: 1.5;">
+            </div>
+        <button class="btn btn-gold" onclick="closeRulesModal()">RESUME EXPERIMENT</button>
+    </div>
+</div>
+
+<div id="quiz-modal" class="modal-overlay" style="z-index: 10500;">
+    <div class="modal-content modal-warning">
+        <h2 style="color: var(--warning); margin-top:0;">POP QUIZ!</h2>
+        <p id="quiz-question" style="font-size: 1.1rem; line-height: 1.4;"></p>
+        <div id="quiz-options" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
+    </div>
+</div>
+
+<div id="player-select-modal" class="modal-overlay" style="z-index: 10600;">
+    <div class="modal-content modal-success">
+        <h2 style="color: var(--success); margin-top:0;">GRANT FUNDS</h2>
+        <p>Select a fellow scientist to receive 200 Au:</p>
+        <div id="player-select-options" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
+    </div>
+</div>
+
+<div id="confirm-modal" class="modal-overlay">
+    <div class="modal-content modal-warning">
+        <h2 style="color: var(--warning); margin-top:0;">CONFIRM ACTION</h2>
+        <p>Are you sure you want to end the experiment early? The current scores will be finalized.</p>
+        <div style="display:flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-gold" onclick="document.getElementById('confirm-modal').style.display='none'; closeModalState(); endGame();">YES, END GAME</button>
+            <button class="btn btn-dark" onclick="document.getElementById('confirm-modal').style.display='none'; closeModalState();">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="alert-modal" class="modal-overlay">
+    <div class="modal-content" id="alert-content">
+        <h2 id="alert-title"></h2>
+        <p id="alert-msg" style="white-space: pre-line;"></p>
+        <button class="btn btn-dark" onclick="closeAlert()">ACKNOWLEDGE</button>
+    </div>
+</div>
+
+<div id="buy-modal" class="modal-overlay"><div class="modal-content"><h2>ELEMENT DISCOVERY</h2><p id="buy-msg"></p><button class="btn btn-gold" id="buy-confirm">ACQUIRE</button><button class="btn btn-dark" onclick="closeBuy()">PASS</button></div></div>
+<div id="tax-modal" class="modal-overlay"><div class="modal-content modal-error"><h2 style="color: var(--error);">REACTION TAX</h2><p id="tax-msg"></p><button class="btn btn-dark" onclick="closeTaxModal()">PAY FINE</button></div></div>
+<div id="upgrade-modal" class="modal-overlay">
+    <div class="modal-content modal-success">
+        <h2 style="color:var(--success); margin-top:0;" id="upgrade-title">MANAGE ELEMENT</h2>
+        <p id="upgrade-msg"></p>
+        <p id="upgrade-cost-msg" style="font-weight:bold; color:var(--gold);"></p>
+        <div style="display:flex; flex-direction: column; gap:10px; margin-top:20px;">
+            <button class="btn btn-gold" id="upgrade-confirm">UPGRADE</button>
+            <button class="btn btn-danger" id="sell-confirm">SELL ELEMENT</button>
+            <button class="btn btn-dark" onclick="closeUpgrade()">PASS</button>
+        </div>
+    </div>
+</div>
+
+<div id="leaderboard-modal" class="modal-overlay">
+    <div class="modal-content" style="width: 90%; max-width: 500px;">
+        <h2 style="color:var(--gold); margin-top: 0;">EXPERIMENT COMPLETE</h2>
+        <div id="leaderboard-list" style="margin-bottom: 20px; text-align: left; max-height: 50vh; overflow-y: auto;"></div>
+        <button class="btn btn-gold" onclick="location.reload()">Restart Game</button>
+    </div>
+</div>
+
+<div id="lab-modal" class="modal-overlay">
+    <div class="modal-content" style="width: 90%; max-width: 800px; max-height: 90vh; display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; overflow-y: auto; padding-bottom: 20px;">
+        <div style="text-align: left; display: flex; flex-direction: column; min-height: 0;">
+            <h2 style="color:var(--gold); margin-top: 0; flex-shrink: 0;">Bonding Lab</h2>
+            
+            <div id="lab-equation-display" style="flex-shrink: 0;">Select two elements to formulate a bond.</div>
+            
+            <div style="background: #1a1a1a; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #333; flex-shrink: 0;">
+                <div style="font-weight: bold; color: var(--gold); margin-bottom: 5px; font-size: 0.9rem;">LAB ASSISTS</div>
+                <label class="assist-label"><input type="checkbox" id="toggle-target" checked onchange="updateLabEquation()"> Show Target Equation (Values)</label>
+                <label class="assist-label"><input type="checkbox" id="toggle-en" checked onchange="renderLab()"> Show EN Values in Element List</label>
+                <label class="assist-label"><input type="checkbox" id="toggle-sort" checked onchange="updateLabEquation()"> Sort Elements (Largest to Smallest)</label>
+                <label class="assist-label"><input type="checkbox" id="toggle-class-ref" onchange="updateClassRef()"> Show Bond Classifications Key</label>
+                
+                <div id="class-ref-box" style="display: none; margin-top: 8px; padding: 8px; background: #000; border: 1px dashed #555; border-radius: 4px; font-size: 0.85rem; color: #ccc; line-height: 1.4;">
+                    <strong style="color:var(--gold)">ΔEN Classification Ranges:</strong><br>
+                    • <b>0.00 - 0.40:</b> Non-Polar Covalent<br>
+                    • <b>0.41 - 1.69:</b> Polar Covalent<br>
+                    • <b>≥ 1.70:</b> Ionic
+                </div>
+            </div>
+
+            <div style="background: #000; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #333; font-size: 0.9rem; flex-shrink: 0;">
+                <div style="color: var(--success); font-weight: bold; margin-bottom: 4px;">BONDS FORMED</div>
+                <div id="lab-history-list" style="color: #aaa;">None yet</div>
+            </div>
+
+            <div id="lab-inv" style="flex-grow: 1; overflow-y:auto; background:#000; padding:10px; margin-bottom:10px; border-radius: 8px; min-height: 0;"></div>
+            
+            <div style="background: rgba(255, 204, 0, 0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--gold); margin-bottom: 10px; flex-shrink: 0; text-align: center;">
+                <div style="color: var(--gold); font-weight: bold; margin-bottom: 5px; font-size: 1.1rem;">STEP 2: Calculate ΔEN Difference</div>
+                
+                <button class="btn btn-dark" style="margin-top: 0; margin-bottom: 10px; font-size: 0.8rem; padding: 6px; border: 1px dashed var(--gold); color: #ccc;" onclick="customAlert('How to Calculate ΔEN', 'Simply subtract the smaller Electronegativity (EN) value from the larger one. The difference is always positive!\n\nExample:\nFluorine (3.98) - Sodium (0.93) = 3.05', 'info')">❓ How do I calculate this?</button>
+                
+                <select id="user-bond-type" style="margin-top: 0; margin-bottom: 10px; width: 100%; box-sizing: border-box;">
+                    <option value="">Select Bond Classification...</option>
+                    <option value="Non-Polar Covalent">Non-Polar Covalent</option>
+                    <option value="Polar Covalent">Polar Covalent</option>
+                    <option value="Ionic">Ionic</option>
+                </select>
+                
+                <input type="number" id="user-ans" step="0.01" placeholder="Enter difference (Subtract ENs!)" style="width: 100%; box-sizing: border-box;">
+            </div>
+            
+            <button id="bond-btn" class="btn btn-gold" disabled onclick="verifyBond()" style="flex-shrink: 0;">Verify Bond</button>
+            <button class="btn btn-dark" onclick="closeLab()" style="flex-shrink: 0; margin-bottom: 10px;">Cancel & Exit</button>
+        </div>
+        
+        <div class="calc-container" style="display: flex; flex-direction: column;">
+            <input type="text" id="calc-screen" autocomplete="off" placeholder="0" onkeydown="if(event.key === 'Enter') calcRes();">
+            <div class="calc-grid" style="flex-grow: 1; align-content: start;">
+                <button class="c-btn" onclick="calcIn('7')">7</button>
+                <button class="c-btn" onclick="calcIn('8')">8</button>
+                <button class="c-btn" onclick="calcIn('9')">9</button>
+                <button class="c-btn" onclick="calcIn('/')">/</button>
+                
+                <button class="c-btn" onclick="calcIn('4')">4</button>
+                <button class="c-btn" onclick="calcIn('5')">5</button>
+                <button class="c-btn" onclick="calcIn('6')">6</button>
+                <button class="c-btn" onclick="calcIn('*')">*</button>
+                
+                <button class="c-btn" onclick="calcIn('1')">1</button>
+                <button class="c-btn" onclick="calcIn('2')">2</button>
+                <button class="c-btn" onclick="calcIn('3')">3</button>
+                <button class="c-btn" onclick="calcIn('-')">-</button>
+                
+                <button class="c-btn" onclick="calcIn('0')">0</button>
+                <button class="c-btn" onclick="calcIn('.')">.</button>
+                <button class="c-btn" style="background:#ffa502" onclick="calcDel()">DEL</button>
+                <button class="c-btn" onclick="calcIn('+')">+</button>
+                
+                <button class="c-btn" style="grid-column: span 2; background:#ff4757" onclick="calcClr()">C</button>
+                <button class="c-btn" style="grid-column: span 2; background:#3498db;" onclick="calcRes()">SOLVE</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let players = [], turn = 0, isRolling = false, labSel = {a: null, b: null};
+    let gameTimer, turnTimer, turnTimeLeft = 45;
+    let isRealisticMode = true; 
+
+    let hasRolled = false; 
+    let usedLabThisTurn = false;
+    let isActionLocked = false; 
+    let oneElementLeftWarned = false; // Tracks if the 1-element left warning has fired
+
+    // Unified Modal Queue System
+    let modalQueue = [];
+    let isModalActive = false;
+    let isTimerPaused = false;
+    let currentQuizContext = null;
+    let activeAlertCallback = null;
+    
+    function escapeHTML(str) { 
+        return str.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag])); 
+    }
+
+    // Modal Manager
+    function enqueueModal(setupFn) {
+        modalQueue.push(setupFn);
+        processModalQueue();
+    }
+
+    function processModalQueue() {
+        if (!isModalActive && modalQueue.length > 0) {
+            isModalActive = true;
+            isTimerPaused = true;
+            updateButtonStates();
+            const nextModal = modalQueue.shift();
+            nextModal();
+        }
+    }
+
+    function closeModalState() {
+        isModalActive = false;
+        processModalQueue();
+        if (modalQueue.length === 0 && document.getElementById('lab-modal').style.display !== 'flex' && document.getElementById('rules-modal').style.display !== 'flex') {
+            isTimerPaused = false;
+        }
+        updateButtonStates();
+    }
+
+    function updateButtonStates() {
+        const lock = isActionLocked || isModalActive;
+        const rollBtn = document.getElementById('roll-btn');
+        const labBtn = document.getElementById('lab-btn');
+        
+        if (rollBtn) rollBtn.disabled = lock || hasRolled;
+        if (labBtn) labBtn.disabled = lock || hasRolled;
+    }
+
+    // Determines dynamic background colors for Level badges
+    function getLevelColor(lvl) {
+        if (lvl === 1) return '#555555'; // Grey
+        if (lvl === 2) return '#2ed573'; // Green
+        if (lvl === 3) return '#1e90ff'; // Blue
+        if (lvl === 4) return '#9c88ff'; // Purple
+        if (lvl === 5) return '#ff4757'; // Red
+        return '#ffa502';                // Gold (6+)
+    }
+
+    function getContrastYIQ(hexcolor){
+        hexcolor = hexcolor.replace("#", "");
+        var r = parseInt(hexcolor.substr(0,2),16);
+        var g = parseInt(hexcolor.substr(2,2),16);
+        var b = parseInt(hexcolor.substr(4,2),16);
+        var yiq = ((r*299)+(g*587)+(b*114))/1000;
+        return (yiq >= 128) ? 'black' : 'white';
+    }
+
+    const quizQuestions = [
+        { q: "Which element has the highest electronegativity value on the periodic table?", opts: ["Oxygen (O)", "Fluorine (F)", "Chlorine (Cl)", "Nitrogen (N)"], ans: 1 },
+        { q: "What bond classification typically corresponds to a ΔEN of 0.2?", opts: ["Ionic", "Polar Covalent", "Non-Polar Covalent", "Metallic"], ans: 2 },
+        { q: "What is the general trend of electronegativity as you move from left to right across a period?", opts: ["It increases", "It decreases", "It remains constant", "It fluctuates randomly"], ans: 0 },
+        { q: "Which of these elements is considered the LEAST electronegative?", opts: ["Sodium (Na)", "Fluorine (F)", "Francium (Fr)", "Carbon (C)"], ans: 2 },
+        { q: "If the electronegativity difference (ΔEN) between two atoms is 2.1, the bond is considered:", opts: ["Non-Polar", "Polar Covalent", "Ionic", "Hydrogen Bond"], ans: 2 }
+    ];
+
+    const slides = [
+        "<b>Winning:</b> To emerge victorious, your final score will be an average composite: <b>ΔEN Difference points</b> + <b>Gold conversion (1000 Au = 2.5 ΔEN)</b>. The game ends immediately when the <b>Max Composite Score</b> is reached!",
+        "<b>End Game:</b> The game automatically concludes when <b>ALL elements on the board have been purchased</b>, or if the time/round limits are reached. You can also abort early from the lab panel.",
+        "<b>Passing GO & Mystery:</b> Completing a circuit grants you a <b>+200 Au</b> Research Grant. Landing on <b>MYSTERY</b> triggers dynamic board expansions and random lab events!",
+        "<b>Bankruptcy & Fines:</b> If you land on another scientist's element and cannot afford the full reaction tax, you go Bankrupt! Your next turn will be skipped, but you will receive an emergency grant of 150 Au.",
+        "<b>The Clock:</b> You have strictly <b>45 seconds</b> per turn. If you do not roll or enter the lab, your scientist will roll automatically!",
+        "<b>Laboratory:</b> If you own 2+ elements, enter the Lab. <b>Forming a bond will end your turn!</b> Correct calculations add ΔEN points. <b>Warning: Incorrect answers will skip your next turn!</b>"
+    ];
+    let currentSlide = 0, winType, winVal, currentRound = 1;
+
+    function openRulesModal() {
+        isTimerPaused = true;
+        let html = slides.map((s, i) => `<div style="margin-bottom: 15px; background: #222; padding: 10px; border-radius: 8px; border-left: 4px solid var(--gold);"><p style="margin: 0;"><b>Rule ${i+1}:</b> ${s}</p></div>`).join('');
+        document.getElementById('rules-content').innerHTML = html;
+        document.getElementById('rules-modal').style.display = 'flex';
+    }
+
+    function closeRulesModal() {
+        document.getElementById('rules-modal').style.display = 'none';
+        if (document.getElementById('lab-modal').style.display !== 'flex' && !isModalActive) {
+            isTimerPaused = false;
+        }
+    }
+
+    function updateWinSettingsUI() {
+        const type = document.getElementById('win-condition-slide').value;
+        const preset = document.getElementById('score-preset');
+        const input = document.getElementById('win-val-slide');
+        const estimate = document.getElementById('time-estimate');
+        const presetContainer = document.getElementById('score-presets-container');
+        const pCount = parseInt(document.getElementById('player-count').value);
+
+        input.oninput = null; 
+
+        if (type === 'time') {
+            presetContainer.style.display = 'none';
+            input.style.display = 'block';
+            input.placeholder = "Enter Minutes";
+            estimate.innerText = "Game ends strictly when time expires.";
+        } else if (type === 'turns') {
+            presetContainer.style.display = 'none';
+            input.style.display = 'block';
+            input.placeholder = "Enter Number of Rounds";
+            
+            const updateTurnText = () => { estimate.innerText = `Game ends after ${input.value || 0} full rounds.`; };
+            updateTurnText();
+            input.oninput = updateTurnText;
+        } else {
+            presetContainer.style.display = 'block';
+            if (preset.value === 'custom') {
+                input.style.display = 'block';
+                input.placeholder = "Enter Max Composite Score";
+                estimate.innerText = "Custom composite score goal.";
+            } else {
+                input.style.display = 'none';
+                let minMins = Math.floor(pCount * 1.5);
+                let maxMins = pCount * 2;
+                if (preset.value === "6.0") estimate.innerText = `Est. Time: ~${minMins}-${maxMins} Minutes`;
+                if (preset.value === "10.0") estimate.innerText = `Est. Time: ~${pCount * 3}-${pCount * 4} Minutes`;
+                if (preset.value === "15.0") estimate.innerText = `Est. Time: ~${pCount * 5}-${pCount * 6} Minutes`;
+            }
+        }
+    }
+
+    function renderSlide() {
+        const container = document.getElementById('slide-container');
+        container.style.opacity = 0;
+        setTimeout(() => {
+            container.innerHTML = `<p style="margin:0;">${slides[currentSlide]}</p>`;
+            document.getElementById('slide-progress').innerText = `Rule ${currentSlide + 1} of ${slides.length}`;
+            document.getElementById('slide-btn').innerText = currentSlide === slides.length - 1 ? "I Understand ➔" : "Next Rule ➔";
+            
+            const prevBtn = document.getElementById('prev-btn');
+            if (prevBtn) {
+                prevBtn.style.display = currentSlide > 0 ? "block" : "none";
+            }
+            
+            container.style.opacity = 1;
+        }, 150);
+    }
+
+    function nextSlide() {
+        if(currentSlide < slides.length - 1) {
+            currentSlide++; 
+            renderSlide();
+        } else {
+            document.getElementById('intro-box').style.display = 'none';
+            document.getElementById('setup-box').style.display = 'block';
+            updateWinSettingsUI(); 
+        }
+    }
+
+    function prevSlide() {
+        if(currentSlide > 0) {
+            currentSlide--;
+            renderSlide();
+        }
+    }
+
+    const boardData = [
+        {pos:0, sym:"GO", type:"special"},
+        {pos:1, sym:"Fr", en:0.7, cost:60},
+        {pos:2, sym:"Cs", en:0.79, cost:60},
+        {pos:3, sym:"MYSTERY", type:"mystery"},
+        {pos:4, sym:"K", en:0.82, cost:100},
+        {pos:5, sym:"Na", en:0.93, cost:120},
+        {pos:6, sym:"Li", en:0.98, cost:140},
+        {pos:7, sym:"Be", en:1.57, cost:150},
+        {pos:15, sym:"Ca", en:1.0, cost:160},
+        {pos:23, sym:"Mg", en:1.31, cost:180},
+        {pos:31, sym:"MYSTERY", type:"mystery"},
+        {pos:39, sym:"Al", en:1.61, cost:200},
+        {pos:47, sym:"Si", en:1.9, cost:240},
+        {pos:55, sym:"B", en:2.04, cost:245},
+        {pos:63, sym:"P", en:2.19, cost:250},
+        {pos:62, sym:"H", en:2.20, cost:260},
+        {pos:61, sym:"C", en:2.55, cost:280},
+        {pos:60, sym:"S", en:2.58, cost:290},
+        {pos:59, sym:"MYSTERY", type:"mystery"},
+        {pos:58, sym:"I", en:2.66, cost:300},
+        {pos:57, sym:"Br", en:2.96, cost:320},
+        {pos:56, sym:"As", en:2.18, cost:330},
+        {pos:48, sym:"N", en:3.04, cost:340},
+        {pos:40, sym:"Cl", en:3.16, cost:360},
+        {pos:32, sym:"O", en:3.44, cost:380},
+        {pos:24, sym:"F", en:3.98, cost:400},
+        {pos:16, sym:"Se", en:2.55, cost:410},
+        {pos:8, sym:"Te", en:2.10, cost:420}
+    ];
+
+    const expansionElements = [
+        {pos:9, sym:"Zn", en:1.65, cost:200}, {pos:10, sym:"Cu", en:1.90, cost:250}, {pos:11, sym:"Ag", en:1.93, cost:300},
+        {pos:12, sym:"Fe", en:1.83, cost:310}, {pos:13, sym:"Ni", en:1.91, cost:320}, {pos:14, sym:"Pt", en:2.28, cost:350},
+        {pos:17, sym:"Au", en:2.54, cost:400}, {pos:18, sym:"Hg", en:2.00, cost:380}, {pos:19, sym:"Tl", en:1.62, cost:200},
+        {pos:20, sym:"Pb", en:2.33, cost:300}, {pos:21, sym:"Bi", en:2.02, cost:250}, {pos:22, sym:"Po", en:2.00, cost:300},
+        {pos:25, sym:"At", en:2.20, cost:350}, {pos:26, sym:"Rn", en:2.20, cost:400}, {pos:27, sym:"Ra", en:0.90, cost:200},
+        {pos:28, sym:"Ac", en:1.10, cost:220}, {pos:29, sym:"Th", en:1.30, cost:240}, {pos:30, sym:"Pa", en:1.50, cost:260},
+        {pos:33, sym:"U", en:1.38, cost:400}, {pos:34, sym:"Np", en:1.36, cost:350}, {pos:35, sym:"Pu", en:1.28, cost:500},
+        {pos:36, sym:"Am", en:1.13, cost:300}, {pos:37, sym:"Cm", en:1.28, cost:320}, {pos:38, sym:"Bk", en:1.30, cost:300},
+        {pos:41, sym:"Cf", en:1.30, cost:300}, {pos:42, sym:"Es", en:1.30, cost:300}, {pos:43, sym:"Fm", en:1.30, cost:300},
+        {pos:44, sym:"Md", en:1.30, cost:300}, {pos:45, sym:"No", en:1.30, cost:300}, {pos:46, sym:"Lr", en:1.30, cost:300},
+        {pos:49, sym:"Rf", en:1.30, cost:300}, {pos:50, sym:"Db", en:1.30, cost:300}, {pos:51, sym:"Sg", en:1.30, cost:300},
+        {pos:52, sym:"Bh", en:1.30, cost:300}, {pos:53, sym:"Hs", en:1.30, cost:300}, {pos:54, sym:"Mt", en:1.30, cost:300}
+    ];
+
+    function getCompositeScore(p) { return p.score + (p.gold * 0.0025); }
+
+    function updatePlayerInputs() {
+        const count = document.getElementById('player-count').value;
+        for(let i=0; i<6; i++) {
+            document.getElementById(`p-row-${i}`).style.display = i < count ? 'flex' : 'none';
+        }
+    }
+
+    function initGame() {
+        const count = parseInt(document.getElementById('player-count').value);
+        const nameInputs = document.querySelectorAll('.p-name-in');
+        const colorInputs = document.querySelectorAll('.p-color-in');
+        
+        winType = document.getElementById('win-condition-slide').value;
+        const presetVal = document.getElementById('score-preset').value;
+        const customVal = document.getElementById('win-val-slide').value;
+        
+        isRealisticMode = document.getElementById('realism-setting').value === 'realistic';
+        
+        winVal = (winType === 'time' || winType === 'turns' || presetVal === 'custom') ? parseFloat(customVal) : parseFloat(presetVal);
+        
+        if (isNaN(winVal) || winVal <= 0) { alert("Please enter a valid goal value."); return; }
+
+        const names = []; const colors = []; const errorMsg = document.getElementById('name-error-msg');
+
+        for(let i = 0; i < count; i++) {
+            let name = nameInputs[i].value.trim();
+            let color = colorInputs[i].value;
+
+            if(name === '') { errorMsg.innerText = "⚠️ Please enter names for all selected scientists."; errorMsg.style.display = 'block'; return; }
+            if(names.includes(name)) { errorMsg.innerText = `⚠️ The name "${name}" is already assigned to another scientist!`; errorMsg.style.display = 'block'; return; }
+            if(colors.includes(color)) { errorMsg.innerText = "⚠️ Each scientist must choose a unique equipment color."; errorMsg.style.display = 'block'; return; }
+
+            names.push(name); colors.push(color);
+        }
+        
+        errorMsg.style.display = 'none';
+
+        for(let i=0; i<count; i++) {
+            players.push({ 
+                id: i, name: names[i], gold: 1500, score: 0, pos: 0, 
+                inventory: [], bonds: [], color: colors[i], skipTurn: false, warnedWin: false 
+            });
+        }
+
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('main-container').style.display = 'flex';
+        
+        if(winType === 'time') {
+            document.getElementById('game-timer-display').style.display = 'block';
+            document.getElementById('goal-display').innerText = `GOAL: HIGH SCORE`;
+            startGameTimer(winVal * 60);
+        } else if(winType === 'turns') {
+            currentRound = 1;
+            document.getElementById('goal-display').innerText = `GOAL: RND 1/${winVal}`;
+        } else {
+            document.getElementById('goal-display').innerText = `GOAL: ${winVal} MAX COMPOSITE`;
+        }
+        renderBoard(); createTokens(); updateUI(); resetTurnTimer();
+    }
+
+    function updateUI() {
+        const p = players[turn];
+        document.getElementById('current-player-display').innerText = escapeHTML(p.name) + "'s Turn";
+        document.getElementById('current-player-display').style.color = p.color;
+        
+        document.body.style.background = `radial-gradient(circle at center, ${p.color}33 0%, #000 100%)`;
+        
+        const sorted = [...players].sort((a,b) => getCompositeScore(b) - getCompositeScore(a));
+        
+        let currentRank = 1, prevScore = -1;
+        sorted.forEach((pl, i) => {
+            let s = getCompositeScore(pl);
+            if(Math.abs(s - prevScore) > 0.0001) { currentRank = i + 1; prevScore = s; }
+            pl._rank = currentRank;
+        });
+
+        let rankCounts = {};
+        sorted.forEach(pl => { rankCounts[pl._rank] = (rankCounts[pl._rank] || 0) + 1; });
+
+        const led = document.getElementById('ledger'); led.innerHTML = "";
+        
+        players.forEach((pl) => {
+            const active = pl.id === players[turn].id;
+            let badge = ["", "1st 👑", "2nd 🥈", "3rd 🥉", "4th 🏅", "5th", "6th"][pl._rank] || "";
+            let tieTag = rankCounts[pl._rank] > 1 ? `<span style="font-size: 0.75rem; background: var(--warning); color: #000; padding: 2px 5px; border-radius: 4px; font-weight: bold;">TIE</span>` : "";
+            
+            const bg = active ? '#222' : 'rgba(0,0,0,0.3)';
+            const borderStyle = active ? `2px solid ${pl.color}` : `2px solid transparent`;
+            const compScore = getCompositeScore(pl).toFixed(2);
+
+            led.innerHTML += `<div class="ledger-item" style="border-left: 8px solid ${pl.color}; border: ${borderStyle}; background: ${bg}; color: #fff;">
+                <div>
+                    <span style="font-weight: bold; font-size: clamp(0.95rem, 1.5vw, 1.1rem); color: ${pl.color};">${escapeHTML(pl.name)}</span> 
+                    <span class="rank-badge" style="color: ${active ? '#fff' : '#aaa'};">${badge}</span>
+                    <span style="font-size: 0.85rem; color: #fff; opacity: 0.7; font-weight: normal;">[Score: ${compScore}]</span>
+                    ${tieTag}
+                </div>
+                <div style="font-size: 0.9rem;">${pl.gold} Au | ${pl.score.toFixed(2)} ΔEN</div>
+            </div>`;
+        });
+
+        if (winType === 'score') {
+            let gameEnded = false;
+            players.forEach(pl => {
+                let comp = getCompositeScore(pl);
+                
+                // 1. Check for Victory
+                if (comp >= winVal) {
+                    gameEnded = true;
+                } 
+                // 2. Check for "2 away" Notification
+                else if (comp >= (winVal - 2)) {
+                    // Only trigger if they weren't already warned at this score level
+                    if (!pl.warnedWin) {
+                        pl.warnedWin = true; // Mark as warned
+                        setTimeout(() => {
+                            customAlert("VICTORY IMMINENT!", `🚨 ${escapeHTML(pl.name)} is less than 2 points away from the Max Composite Score! 🚨\n\nCurrent Score: ${comp.toFixed(2)} / ${winVal}`, "warning");
+                        }, 800);
+                    }
+                } 
+                // 3. Reset the flag if they fall below the threshold
+                else {
+                    pl.warnedWin = false;
+                }
+            });
+            
+            if (gameEnded && document.getElementById('leaderboard-modal').style.display !== 'flex') {
+                setTimeout(() => endGame(), 600);
+            }
+        }
+    }
+
+    function movePlayer(steps) {
+        const p = players[turn]; const path = boardData.map(b => b.pos);
+        let cur = path.indexOf(p.pos), m = 0;
+        
+        isActionLocked = true; 
+        updateButtonStates();
+
+        let int = setInterval(() => {
+            cur = (cur+1)%path.length;
+            if(cur===0) { p.gold += 200; triggerBoardAnimation('gold', `RESEARCH GRANT<br>+200 Au`); updateUI(); }
+            p.pos = path[cur]; placeToken(p.id, p.pos);
+            if(++m >= steps) { 
+                clearInterval(int); 
+                isActionLocked = false; 
+                updateButtonStates();
+                processTile(); 
+            }
+        }, 200);
+    }
+
+    function triggerBoardAnimation(type, text) {
+        const grid = document.getElementById('board-grid');
+        const container = document.createElement('div'); container.className = 'main-anim-container';
+        const anim = document.createElement('div'); anim.className = `main-anim ${type}`;
+        anim.innerHTML = text; container.appendChild(anim); grid.appendChild(container);
+        setTimeout(() => container.remove(), 5000); 
+    }
+
+    function renderBoard() {
+        const grid = document.getElementById('board-grid');
+        grid.innerHTML = "";
+        
+        for(let i=0; i<64; i++) {
+            const data = boardData.find(m => m.pos === i);
+            const div = document.createElement('div');
+            if(data) {
+                div.className = `tile`; div.id = `tile-${i}`;
+                
+                // Elements default to Lv 1 both visually and logically
+                let currentLevel = data.level || 1;
+                let lvlBadgeBg = getLevelColor(currentLevel);
+                let lvlBadgeColor = getContrastYIQ(lvlBadgeBg);
+                
+                let levelText = data.en ? `<div class="level-text" style="font-weight:bold; font-size:0.75rem; background: ${lvlBadgeBg}; color: ${lvlBadgeColor}; border: 1px solid transparent; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-top: 2px;">Lv.${currentLevel}</div>` : '';
+                let currentFine = data.en ? Math.floor(data.en*50) * currentLevel : 0;
+                
+                let extra = data.en ? `<div>Cost: ${data.cost}</div><div class="fine-text" style="color:var(--error); font-weight:bold; margin-top: 2px;">Fine: ${currentFine}</div>${levelText}` : '';
+                if(data.sym === "GO") extra = `<div class="fine-text" style="color:var(--success)">+200 Au</div>`;
+                if(data.type === "mystery") {
+                    extra = `<div class="fine-text" style="color:var(--warning)">? ? ?</div>`;
+                    div.classList.add('mystery');
+                }
+                div.innerHTML = `<strong>${data.sym}</strong>${extra}`;
+
+                if (data.owner !== undefined) {
+                    const ownerPlayer = players[data.owner];
+                    const contrastColor = getContrastYIQ(ownerPlayer.color);
+                    
+                    div.style.backgroundColor = ownerPlayer.color;
+                    div.style.color = contrastColor;
+                    div.querySelector('strong').style.color = contrastColor;
+                    const fineEl = div.querySelector('.fine-text');
+                    if (fineEl) fineEl.style.color = contrastColor;
+                    
+                    // High-Contrast Level Badge Border dynamically applied so it never blends in
+                    const lvlEl = div.querySelector('.level-text');
+                    if (lvlEl) {
+                        lvlEl.style.border = `1px solid ${contrastColor}`;
+                    }
+                    div.style.border = `2px solid ${contrastColor}`;
+                }
+            } else div.className = 'tile blank';
+            grid.appendChild(div);
+        }
+        createTokens(); 
+    }
+
+    function createTokens() {
+        players.forEach(p => {
+            let tok = document.getElementById(`token-${p.id}`);
+            if (!tok) {
+                tok = document.createElement('div'); 
+                tok.id = `token-${p.id}`; 
+                tok.className = 'token'; 
+                tok.style.background = p.color;
+                document.getElementById('board-grid').appendChild(tok); 
+            }
+            placeToken(p.id, p.pos || 0); 
+        });
+    }
+
+    function placeToken(id, pos) {
+        const tile = document.getElementById(`tile-${pos}`);
+        const tok = document.getElementById(`token-${id}`);
+        if(tile && tok) {
+            const tileSize = tile.offsetWidth;
+            const offsetStep = tileSize > 60 ? 14 : 8; 
+            const offsetX = (id % 3) * offsetStep; 
+            const offsetY = Math.floor(id / 3) * offsetStep;
+            
+            tok.style.top = (tile.offsetTop + (tileSize * 0.1) + offsetY) + 'px';
+            tok.style.left = (tile.offsetLeft + (tileSize * 0.1) + offsetX) + 'px';
+        }
+    }
+
+    window.addEventListener('resize', () => {
+        players.forEach(p => {
+            if(p.pos !== undefined) placeToken(p.id, p.pos);
+        });
+    });
+
+    function handleRoll() {
+        if(isActionLocked || isModalActive || hasRolled) return; 
+        
+        isActionLocked = true;
+        hasRolled = true; 
+        updateButtonStates();
+        
+        const d = document.getElementById('dice-view'); d.classList.add('dice-rolling');
+        setTimeout(() => {
+            d.classList.remove('dice-rolling');
+            const res = Math.floor(Math.random()*6)+1; 
+            d.setAttribute('data-face', res); 
+            movePlayer(res);
+        }, 1000);
+    }
+
+    function openSoloQuiz() {
+        enqueueModal(() => {
+            const p = players[turn];
+            currentQuizContext = { type: 'solo', p1: p };
+            
+            let qIndex = Math.floor(Math.random() * quizQuestions.length);
+            let q = quizQuestions[qIndex];
+            currentQuizContext.ans = q.ans;
+            
+            let optsHtml = q.opts.map((opt, i) => `<button class="btn btn-dark" onclick="submitQuiz(${i})">${opt}</button>`).join('');
+            document.getElementById('quiz-question').innerHTML = `<b>SOLO POP QUIZ for ${escapeHTML(p.name)}!</b><br><br>${q.q}`;
+            document.getElementById('quiz-options').innerHTML = optsHtml;
+            document.getElementById('quiz-modal').style.display = 'flex';
+        });
+    }
+
+    function openH2HQuiz() {
+        const others = players.filter(pl => pl.id !== players[turn].id);
+        if(others.length === 0) return nextTurn(); 
+        const p2 = others[Math.floor(Math.random() * others.length)];
+        
+        currentQuizContext = { type: 'h2h_p1', p1: players[turn], p2: p2 };
+        showH2HQuestion(players[turn]);
+    }
+
+    function showH2HQuestion(targetPlayer) {
+        enqueueModal(() => {
+            let qIndex = Math.floor(Math.random() * quizQuestions.length);
+            let q = quizQuestions[qIndex];
+            currentQuizContext.ans = q.ans;
+            
+            let optsHtml = q.opts.map((opt, i) => `<button class="btn btn-dark" onclick="submitQuiz(${i})">${opt}</button>`).join('');
+            document.getElementById('quiz-question').innerHTML = `<b>HEAD-TO-HEAD: ${escapeHTML(targetPlayer.name)}'s turn!</b><br><br>${q.q}`;
+            document.getElementById('quiz-options').innerHTML = optsHtml;
+            document.getElementById('quiz-modal').style.display = 'flex';
+        });
+    }
+
+    function submitQuiz(selectedIdx) {
+        document.getElementById('quiz-modal').style.display = 'none';
+        closeModalState(); 
+        
+        const isCorrect = selectedIdx === currentQuizContext.ans;
+
+        if (currentQuizContext.type === 'solo') {
+            let p = currentQuizContext.p1;
+            if (isCorrect) {
+                p.gold += 500;
+                p.score += 1.0;
+                openPlayerSelectModal(p, (targetId) => {
+                    let target = players.find(pl => pl.id == targetId);
+                    target.gold += 200;
+                    updateUI(); 
+                    customAlert("QUIZ ACE!", `Correct! +500 Au and +1.0 ΔEN.\nYou granted 200 Au to ${escapeHTML(target.name)}.`, "success", nextTurn);
+                });
+            } else {
+                p.skipTurn = true;
+                p.gold = Math.max(0, p.gold - 100);
+                updateUI();
+                customAlert("QUIZ FAILED!", `Incorrect! You lost 100 Au and your next turn is skipped.`, "error", nextTurn);
+            }
+        } else if (currentQuizContext.type === 'h2h_p1') {
+            currentQuizContext.p1Correct = isCorrect;
+            currentQuizContext.type = 'h2h_p2';
+            setTimeout(() => { showH2HQuestion(currentQuizContext.p2); }, 200);
+        } else if (currentQuizContext.type === 'h2h_p2') {
+            currentQuizContext.p2Correct = isCorrect;
+            let p1 = currentQuizContext.p1;
+            let p2 = currentQuizContext.p2;
+            let c1 = currentQuizContext.p1Correct;
+            let c2 = currentQuizContext.p2Correct;
+
+            if (c1 && c2) {
+                p1.gold += 200; p1.score += 1.0;
+                p2.gold += 200; p2.score += 1.0;
+                updateUI();
+                customAlert("A TIE!", `Both scientists answered correctly!\nBoth receive +200 Au and +1.0 ΔEN.`, "success", nextTurn);
+            } else if (c1 && !c2) {
+                p1.gold += 400; p1.score += 2.0;
+                updateUI();
+                customAlert(`${escapeHTML(p1.name)} WINS!`, `${escapeHTML(p1.name)} answered correctly, but ${escapeHTML(p2.name)} failed.\n${escapeHTML(p1.name)} receives +400 Au and +2.0 ΔEN.`, "success", nextTurn);
+            } else if (!c1 && c2) {
+                p2.gold += 400; p2.score += 2.0;
+                updateUI();
+                customAlert(`${escapeHTML(p2.name)} WINS!`, `${escapeHTML(p2.name)} answered correctly, but ${escapeHTML(p1.name)} failed.\n${escapeHTML(p2.name)} receives +400 Au and +2.0 ΔEN.`, "success", nextTurn);
+            } else {
+                customAlert("MUTUAL FAILURE", `Both scientists answered incorrectly! No rewards are given.`, "error", nextTurn);
+            }
+        }
+    }
+
+    function openPlayerSelectModal(p, callback) {
+        enqueueModal(() => {
+            const others = players.filter(pl => pl.id !== p.id);
+            if (others.length === 0) {
+                closeModalState();
+                return callback(p.id); 
+            }
+            
+            let optsHtml = others.map(opt => `<button class="btn btn-dark" style="background:${opt.color}; color:${getContrastYIQ(opt.color)}; border: 2px solid #fff;" onclick="selectPlayerForGrant(${opt.id})">${escapeHTML(opt.name)}</button>`).join('');
+            document.getElementById('player-select-options').innerHTML = optsHtml;
+            document.getElementById('player-select-modal').style.display = 'flex';
+
+            window.selectPlayerForGrant = function(id) {
+                document.getElementById('player-select-modal').style.display = 'none';
+                closeModalState();
+                callback(id);
+            }
+        });
+    }
+
+    function processTile() {
+        const landingPlayerId = turn; 
+        const p = players[landingPlayerId]; 
+        const tile = boardData.find(b => b.pos === p.pos);
+        
+        if(tile.type === "mystery") {
+            const events = [
+                () => { 
+                    const others = players.filter(pl => pl.id !== p.id);
+                    if(others.length > 0) {
+                        const target = others[Math.floor(Math.random() * others.length)];
+                        let tempGold = p.gold; p.gold = target.gold; target.gold = tempGold;
+                        let tempScore = p.score; p.score = target.score; target.score = tempScore;
+                        updateUI();
+                        customAlert("MYSTERY: QUANTUM ENTANGLEMENT!", `You swapped Au and ΔEN values with ${escapeHTML(target.name)}!\n\nYour new balance: ${p.gold} Au, ${p.score.toFixed(2)} ΔEN\n${escapeHTML(target.name)}'s balance: ${target.gold} Au, ${target.score.toFixed(2)} ΔEN`, "warning", nextTurn);
+                    } else nextTurn();
+                },
+                () => { 
+                    const others = players.filter(pl => pl.id !== p.id);
+                    let fine = 50;
+                    if(p.gold < fine * others.length) fine = Math.floor(p.gold / others.length);
+                    
+                    let msg = `Accident! You paid ${fine} Au to all other scientists for cleanup.\n\n`;
+                    others.forEach(o => { o.gold += fine; p.gold -= fine; msg += `${escapeHTML(o.name)}: +${fine} Au (New Total: ${o.gold} Au)\n`; });
+                    msg += `\nYour new balance: ${p.gold} Au`;
+                    
+                    updateUI();
+                    customAlert("MYSTERY: LAB CONTAMINATION!", msg, "error", nextTurn);
+                },
+                () => { 
+                    p.gold += 300;
+                    updateUI();
+                    customAlert("MYSTERY: BREAKTHROUGH!", `You discovered a novel isotope! Grant awarded: +300 Au.\n\nYour new balance: ${p.gold} Au`, "success", nextTurn);
+                },
+                () => {
+                    p.score += 2.0;
+                    updateUI();
+                    customAlert("MYSTERY: EPIPHANY!", `A sudden realization in the lab yields results! +2.00 ΔEN to your score.\n\nYour new score: ${p.score.toFixed(2)} ΔEN`, "success", nextTurn);
+                },
+                () => {
+                    p.gold += 50;
+                    updateUI();
+                    customAlert("MYSTERY: TAX RETURN", `The scientific board approved your budget! Collect 50 Au.\n\nYour new balance: ${p.gold} Au`, "success", nextTurn);
+                },
+                () => {
+                    p.gold = Math.max(0, p.gold - 100);
+                    updateUI();
+                    customAlert("MYSTERY: RADIOACTIVE DECAY", `Your samples degraded overnight! You lost 100 Au trying to replace them.\n\nYour new balance: ${p.gold} Au`, "error", nextTurn);
+                },
+                () => { 
+                    if (expansionElements.length > 0) {
+                        let added = [];
+                        let numToAdd = Math.min(3, expansionElements.length);
+                        for(let i=0; i<numToAdd; i++) {
+                            let randIdx = Math.floor(Math.random() * expansionElements.length);
+                            let el = expansionElements.splice(randIdx, 1)[0];
+                            added.push(el);
+                            boardData.push(el);
+                        }
+                        let syms = added.map(e => e.sym).join(", ");
+                        renderBoard();
+                        oneElementLeftWarned = false; // Reset the 1-element warning tracking due to expansion
+                        customAlert("MYSTERY: LAB EXPANSION!", `New elements synthesized! ${syms} have randomly appeared on the board.\n\nExpansions remaining: ${Math.ceil(expansionElements.length/3)} batches`, "success", nextTurn);
+                    } else {
+                        p.gold += 150;
+                        updateUI();
+                        customAlert("MYSTERY: MINOR GRANT", `The board is already fully expanded! You received a 150 Au grant instead.\n\nYour new balance: ${p.gold} Au`, "info", nextTurn);
+                    }
+                },
+                () => { openSoloQuiz(); },
+                () => { openH2HQuiz(); }
+            ];
+            const randomEvent = events[Math.floor(Math.random() * events.length)];
+            randomEvent();
+            return; 
+        }
+
+        if(!tile || tile.type) return nextTurn();
+        
+        if(tile.owner === undefined) {
+            enqueueModal(() => {
+                document.getElementById('buy-msg').innerText = `${tile.sym} costs ${tile.cost} Au.`;
+                document.getElementById('buy-modal').style.display = 'flex';
+                
+                document.getElementById('buy-confirm').onclick = () => {
+                    if(p.gold >= tile.cost) {
+                        p.gold -= tile.cost; 
+                        tile.owner = landingPlayerId; 
+                        tile.level = 1; // Explicitly set to Level 1 baseline
+                        p.inventory.push(tile);
+                        
+                        const tEl = document.getElementById(`tile-${tile.pos}`);
+                        const contrastColor = getContrastYIQ(p.color);
+                        tEl.style.backgroundColor = p.color;
+                        tEl.style.color = contrastColor;
+                        tEl.querySelector('strong').style.color = contrastColor;
+                        const fineEl = tEl.querySelector('.fine-text');
+                        if (fineEl) fineEl.style.color = contrastColor;
+                        
+                        // Dynamically update Level Badge on direct buy without re-rendering entire board
+                        const lvlEl = tEl.querySelector('.level-text');
+                        if (lvlEl) {
+                            let bgCol = getLevelColor(1);
+                            lvlEl.style.backgroundColor = bgCol;
+                            lvlEl.style.color = getContrastYIQ(bgCol);
+                            lvlEl.style.border = `1px solid ${contrastColor}`;
+                            lvlEl.innerText = 'Lv.1';
+                        }
+                        
+                        tEl.style.border = `2px solid ${contrastColor}`;
+
+                        document.getElementById('buy-modal').style.display = 'none'; 
+                        closeModalState();
+                        
+                        // Recalculate remaining purchasable elements
+                        const elements = boardData.filter(b => b.en !== undefined);
+                        const unownedElements = elements.filter(b => b.owner === undefined);
+                        
+                        if(unownedElements.length === 0) {
+                            customAlert("ALL ELEMENTS CLAIMED", "The periodic table is complete! Ending the experiment...", "success", endGame);
+                        } else if(unownedElements.length === 1 && !oneElementLeftWarned) {
+                            oneElementLeftWarned = true;
+                            updateUI();
+                            customAlert("ALMOST COMPLETE!", `Only ONE element (${unownedElements[0].sym}) remains unclaimed on the board! The experiment will end when it is acquired.`, "warning", nextTurn);
+                        } else {
+                            updateUI();
+                            nextTurn();
+                        }
+                    } else {
+                        document.getElementById('buy-modal').style.display = 'none';
+                        closeModalState();
+                        customAlert("Insufficient Au!", "You cannot afford this element.", "error", nextTurn);
+                    }
+                };
+            });
+        } else if(tile.owner !== landingPlayerId) {
+            enqueueModal(() => {
+                const calculatedTax = Math.floor(tile.en*50) * (tile.level || 1); 
+                const actualTax = Math.min(p.gold, calculatedTax); 
+
+                p.gold -= actualTax; 
+                players[tile.owner].gold += actualTax; 
+                
+                triggerBoardAnimation('minus', `${escapeHTML(p.name)} -> ${escapeHTML(players[tile.owner].name)}<br>${actualTax} Au Reaction Tax`); 
+                
+                let msgHtml = `Reaction on <b>${tile.sym}</b>!<br>Paid <b>${actualTax} Au</b>.`;
+                
+                if (actualTax < calculatedTax) {
+                    p.skipTurn = true;
+                    p.gold += 150;
+                    msgHtml += `<br><br><span style="color: var(--warning); font-size: 0.95rem;"><b>BANKRUPT!</b><br>You could not pay the full fine. You receive an emergency grant of 150 Au, but your NEXT turn is skipped.</span>`;
+                }
+                
+                document.getElementById('tax-msg').innerHTML = msgHtml; 
+                document.getElementById('tax-modal').style.display = 'flex'; 
+                updateUI(); 
+            });
+        } else {
+            openUpgradeModal(tile, p);
+        }
+    }
+
+    function openUpgradeModal(tile, player) {
+        enqueueModal(() => {
+            tile.level = tile.level || 1;
+            const currentDisplayLvl = tile.level;
+            const newDisplayLvl = tile.level + 1;
+            
+            // Scaled appropriately for Level 1 base line
+            const cost = 100 + ((tile.level - 1) * 50);
+            const currentFine = Math.floor(tile.en * 50) * tile.level;
+            const newFine = Math.floor(tile.en * 50) * (tile.level + 1);
+
+            // Calculate total invested (base cost + accumulated upgrade costs) and take 75% for Sell Value
+            let upgradeCostTotal = 0;
+            for(let i = 1; i < tile.level; i++) {
+                upgradeCostTotal += 100 + ((i - 1) * 50);
+            }
+            const sellValue = Math.floor((tile.cost + upgradeCostTotal) * 0.75);
+
+            document.getElementById('upgrade-msg').innerHTML = `<b>${tile.sym}</b> is currently Level ${currentDisplayLvl}.<br><br>Upgrade to Level ${newDisplayLvl}?<br>Current Fine: ${currentFine} Au<br>New Fine: <span style="color:var(--success)">${newFine} Au</span>`;
+            document.getElementById('upgrade-cost-msg').innerText = `Upgrade Cost: ${cost} Au`;
+            
+            document.getElementById('sell-confirm').innerText = `SELL FOR ${sellValue} Au`;
+
+            document.getElementById('upgrade-modal').style.display = 'flex';
+
+            document.getElementById('upgrade-confirm').onclick = () => {
+                document.getElementById('upgrade-modal').style.display = 'none';
+                closeModalState();
+
+                if (player.gold >= cost) {
+                    player.gold -= cost;
+                    tile.level++;
+                    renderBoard(); 
+                    updateUI();
+                    customAlert("UPGRADE SUCCESS", `${tile.sym} is now Level ${newDisplayLvl}! Interaction fine increased.`, "success", nextTurn);
+                } else {
+                    customAlert("INSUFFICIENT FUNDS", `You need ${cost} Au to perform this upgrade.`, "error", nextTurn);
+                }
+            };
+            
+            document.getElementById('sell-confirm').onclick = () => {
+                document.getElementById('upgrade-modal').style.display = 'none';
+                closeModalState();
+
+                // Process Sale
+                player.gold += sellValue;
+                tile.owner = undefined;
+                tile.level = 1;
+                delete tile.used; // Reset lab bond status if any
+                
+                // Remove from inventory
+                player.inventory = player.inventory.filter(i => i.pos !== tile.pos);
+                
+                // Reset one element left warning logic, as an element returned to the market
+                oneElementLeftWarned = false;
+                
+                // Re-render board to show tile is available again
+                renderBoard();
+                updateUI();
+                
+                customAlert("ELEMENT SOLD", `You successfully sold ${tile.sym} back to the scientific board for ${sellValue} Au.`, "info", nextTurn);
+            };
+        });
+    }
+
+    function resetTurnTimer() {
+        clearInterval(turnTimer); turnTimeLeft = 45;
+        document.getElementById('turn-timer-display').innerText = `TURN: ${turnTimeLeft}s`;
+        turnTimer = setInterval(() => {
+            if(isTimerPaused || isActionLocked || isModalActive) return; 
+            turnTimeLeft--;
+            document.getElementById('turn-timer-display').innerText = `TURN: ${turnTimeLeft}s`;
+            if(turnTimeLeft <= 0) { 
+                clearInterval(turnTimer); 
+                if (!hasRolled && !usedLabThisTurn) {
+                    handleRoll();
+                } else {
+                    nextTurn(); 
+                }
+            }
+        }, 1000);
+    }
+
+    function startGameTimer(sec) {
+        gameTimer = setInterval(() => {
+            sec--;
+            let m = Math.floor(sec/60), s = sec%60;
+            document.getElementById('game-timer-display').innerText = `GAME: ${m}:${s<10?'0'+s:s}`;
+            if(sec === 30) customAlert("CRITICAL STABILITY", "30 seconds remaining!", "warning");
+            if(sec <= 0) endGame();
+        }, 1000);
+    }
+
+    function nextTurn() {
+        turn = (turn+1)%players.length; 
+        
+        hasRolled = false;
+        usedLabThisTurn = false;
+        isActionLocked = false;
+        
+        updateButtonStates();
+
+        if (turn === 0) {
+            if (winType === 'turns') {
+                currentRound++;
+                if (currentRound > winVal) return endGame();
+                document.getElementById('goal-display').innerText = `GOAL: RND ${currentRound}/${winVal}`;
+            }
+        }
+        
+        if (players[turn].skipTurn) {
+            players[turn].skipTurn = false;
+            updateUI(); 
+            customAlert("TURN SKIPPED", `${escapeHTML(players[turn].name)} is recovering from a penalty (failed reaction, quiz, or bankruptcy) and misses this turn!`, "warning", () => {
+                nextTurn();
+            });
+            return; 
+        }
+
+        updateUI(); resetTurnTimer();
+    }
+
+    function openLab() { 
+        if(isActionLocked || isModalActive || hasRolled) return;
+        
+        const availableItems = players[turn].inventory.filter(i => !i.used);
+        if(availableItems.length < 2) return customAlert("Lab Restricted", "You need at least 2 available (unbonded) elements!", "error");
+        
+        usedLabThisTurn = true;
+        isTimerPaused = true;
+        updateButtonStates();
+
+        const historyBox = document.getElementById('lab-history-list');
+        if (players[turn].bonds.length > 0) {
+            historyBox.innerHTML = players[turn].bonds.join(' &nbsp;|&nbsp; ');
+        } else {
+            historyBox.innerHTML = "None yet";
+        }
+
+        calcClr();
+
+        document.getElementById('lab-modal').style.display='flex'; 
+        renderLab(); 
+        updateLabEquation();
+    }
+
+    function closeLab() {
+        document.getElementById('lab-modal').style.display='none';
+        document.getElementById('user-ans').value = ""; 
+        document.getElementById('user-bond-type').value = ""; 
+        calcClr();
+        labSel = {a:null, b:null}; 
+        
+        usedLabThisTurn = false; 
+        isTimerPaused = false;
+        updateButtonStates();
+    }
+
+    function updateClassRef() {
+        document.getElementById('class-ref-box').style.display = document.getElementById('toggle-class-ref').checked ? 'block' : 'none';
+    }
+
+    function verifyBond() {
+        const ans = parseFloat(document.getElementById('user-ans').value);
+        const userBondType = document.getElementById('user-bond-type').value;
+        const correctNum = Math.abs(labSel.a.en - labSel.b.en).toFixed(2);
+        
+        if (!userBondType) return customAlert("Input Required", "Please select a bond classification from the dropdown.", "warning");
+        if (isNaN(ans)) return customAlert("Input Required", "Please calculate the ΔEN.", "warning");
+
+        document.getElementById('lab-modal').style.display = 'none';
+
+        let correctType = "";
+        if (correctNum >= 1.7) correctType = "Ionic";
+        else if (correctNum > 0.4) correctType = "Polar Covalent";
+        else correctType = "Non-Polar Covalent";
+
+        if(ans == correctNum && userBondType === correctType) {
+            players[turn].score += parseFloat(correctNum);
+            players[turn].bonds.push(`<b>${labSel.a.sym}-${labSel.b.sym}</b> (${correctNum})`);
+            
+            labSel.a.used = true;
+            labSel.b.used = true;
+
+            updateUI(); 
+            customAlert("BOND SUCCESS", `Structure stabilized! You successfully formed a ${correctType} bond. +${correctNum} ΔEN.`, "success", () => {
+                usedLabThisTurn = true;
+                nextTurn(); 
+            });
+        } else {
+            players[turn].skipTurn = true; 
+            customAlert("REACTION FAILURE", `Incorrect! The actual ΔEN was ${correctNum} (${correctType}). Your NEXT turn is skipped!`, "error", () => {
+                usedLabThisTurn = true;
+                nextTurn(); 
+            });
+        }
+        
+        labSel = {a:null, b:null}; 
+    }
+
+    function renderLab() {
+        const c = document.getElementById('lab-inv'); c.innerHTML = "";
+        const showEN = document.getElementById('toggle-en').checked;
+
+        players[turn].inventory.forEach(item => {
+            const d = document.createElement('div');
+            
+            if (item.used) {
+                d.className = `lab-item`;
+                d.style.opacity = '0.4';
+                d.style.cursor = 'not-allowed';
+                d.innerHTML = `<span>${item.sym} ${showEN ? `(${item.en})` : ''} <span style="color:var(--error); font-size:0.8rem; margin-left: 5px;">(Bonded)</span></span>`;
+                c.appendChild(d);
+                return; 
+            }
+
+            const sel = labSel.a === item || labSel.b === item;
+            d.className = `lab-item ${sel?'lab-item-selected':''}`;
+            d.innerHTML = `<span>${item.sym} ${showEN ? `(${item.en})` : ''}</span>`;
+            d.onclick = () => {
+                if(labSel.a === item) labSel.a = null; else if(labSel.b === item) labSel.b = null;
+                else if(!labSel.a) labSel.a = item; else if(!labSel.b) labSel.b = item;
+                updateLabEquation(); 
+                renderLab();
+            };
+            c.appendChild(d);
+        });
+    }
+
+    function updateLabEquation() {
+        const eq = document.getElementById('lab-equation-display');
+        const btn = document.getElementById('bond-btn');
+        
+        if(labSel.a && labSel.b) {
+            const nonMetals = ["H", "B", "C", "N", "O", "F", "Si", "P", "S", "Cl", "As", "Se", "Br", "Te", "I", "At", "Rn"];
+            const isMetal = (sym) => !nonMetals.includes(sym);
+
+            if (isRealisticMode && isMetal(labSel.a.sym) && isMetal(labSel.b.sym)) {
+                eq.innerHTML = `<div style="color: var(--error); font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">METALLIC BOND DETECTED</div>
+                                <div style="font-size: 1.5rem; color: #888; margin-bottom: 5px;"><del><b>${labSel.a.sym}</b> - <b>${labSel.b.sym}</b></del></div>
+                                <div style="font-size: 0.9rem; color: #aaa; text-align: center;">You cannot bond two metals together in Realistic Mode.<br>Select at least one non-metal element.</div>`;
+                btn.disabled = true;
+                return;
+            }
+
+            btn.disabled = false;
+            const doSort = document.getElementById('toggle-sort').checked;
+            const showTarget = document.getElementById('toggle-target').checked;
+
+            let leftItem, rightItem;
+            if (doSort) {
+                [leftItem, rightItem] = labSel.a.en > labSel.b.en ? [labSel.a, labSel.b] : [labSel.b, labSel.a];
+            } else {
+                [leftItem, rightItem] = [labSel.a, labSel.b];
+            }
+
+            let targetHtml = "";
+            if (showTarget) {
+                targetHtml = `<div style="font-size: 1.1rem; color: #fff; background: #222; padding: 8px 15px; border-radius: 4px; border: 1px dashed #555; margin-top: 10px;"><b>Subtract:</b> ${leftItem.en} - ${rightItem.en}</div>`;
+            }
+            
+            eq.innerHTML = `
+                <div style="color: var(--success); font-weight: bold; font-size: 0.9rem; margin-bottom: 5px;">STEP 1: Elements Selected</div>
+                <div style="font-size: 1.8rem; color: var(--gold); margin-bottom: 5px;"><b>${leftItem.sym}</b> - <b>${rightItem.sym}</b></div>
+                ${targetHtml}
+            `;
+        } else if (labSel.a) {
+            btn.disabled = true;
+            eq.innerHTML = `
+                <div style="font-size: 1.8rem; color: #888; margin-bottom: 5px;"><b>${labSel.a.sym}</b> - <b>?</b></div>
+                <div style="font-size: 1rem; color: #555;">Select a second element...</div>
+            `;
+        } else {
+            btn.disabled = true;
+            eq.innerHTML = "Select two elements to formulate a bond.";
+        }
+    }
+
+    function endGame() {
+        clearInterval(gameTimer); clearInterval(turnTimer);
+        
+        const sorted = [...players].sort((a,b) => getCompositeScore(b) - getCompositeScore(a));
+        let html = "";
+        let currentRank = 1, prevScore = -1;
+        
+        sorted.forEach((p, i) => {
+            let s = getCompositeScore(p);
+            if(Math.abs(s - prevScore) > 0.0001) { currentRank = i + 1; prevScore = s; }
+            p._rank = currentRank;
+        });
+
+        let rankCounts = {};
+        sorted.forEach(pl => {
+            rankCounts[pl._rank] = (rankCounts[pl._rank] || 0) + 1;
+        });
+        
+        sorted.forEach((p, i) => {
+            let s = getCompositeScore(p);
+            let tieTag = rankCounts[p._rank] > 1 ? `<span style="font-size: 0.8rem; background: var(--warning); color: #000; padding: 2px 6px; border-radius: 4px; margin-left: 10px; vertical-align: middle; text-transform: uppercase; font-weight:bold;">Tied</span>` : "";
+            
+            html += `<div style="padding: 12px; border-left: 8px solid ${p.color}; background: #222; margin-bottom: 10px; border-radius: 6px;">
+                        <strong style="font-size: 1.2rem; color: ${p.color}">#${p._rank} ${escapeHTML(p.name)}</strong> ${tieTag}
+                        <span style="float: right; font-weight: bold; font-size: 1.1rem; color: var(--success);">${s.toFixed(2)} Composite</span><br>
+                        <small style="color: #ccc; margin-top: 5px; display: inline-block;">${p.score.toFixed(2)} ΔEN | ${p.gold} Au</small>
+                     </div>`;
+        });
+
+        document.getElementById('leaderboard-list').innerHTML = html;
+        document.getElementById('leaderboard-modal').style.display = 'flex';
+    }
+
+    function customAlert(t, m, type="info", callback=null) { 
+        enqueueModal(() => {
+            activeAlertCallback = callback;
+            const modal = document.getElementById('alert-content'); 
+            modal.className = 'modal-content'; 
+            if(type === 'success') modal.classList.add('modal-success');
+            if(type === 'error') modal.classList.add('modal-error');
+            if(type === 'warning') modal.classList.add('modal-warning');
+            
+            document.getElementById('alert-title').innerText = t; 
+            document.getElementById('alert-msg').innerText = m; 
+            document.getElementById('alert-modal').style.display='flex'; 
+        });
+    }
+
+    function closeAlert() { 
+        document.getElementById('alert-modal').style.display='none'; 
+        let cb = activeAlertCallback;
+        activeAlertCallback = null;
+        closeModalState();
+        if(cb) cb();
+    }
+    
+    function closeTaxModal() { document.getElementById('tax-modal').style.display='none'; closeModalState(); nextTurn(); }
+    function closeBuy() { document.getElementById('buy-modal').style.display='none'; closeModalState(); nextTurn(); }
+    function closeUpgrade() { document.getElementById('upgrade-modal').style.display='none'; closeModalState(); nextTurn(); }
+    
+    function calcIn(v) { 
+        const screen = document.getElementById('calc-screen');
+        screen.value += v; 
+        screen.focus();
+    }
+    function calcClr() { 
+        document.getElementById('calc-screen').value = ""; 
+    }
+    function calcDel() { 
+        const screen = document.getElementById('calc-screen');
+        screen.value = screen.value.slice(0, -1); 
+        screen.focus();
+    }
+    function calcRes() { 
+        const screen = document.getElementById('calc-screen');
+        try { 
+            if(screen.value.trim() !== '') {
+                let result = eval(screen.value.replace(/[^0-9+\-*/.]/g, ''));
+                if(result !== undefined) {
+                    screen.value = Number(result).toFixed(2);
+                }
+            }
+        } catch(e) {
+            let old = screen.value;
+            screen.value = "Error";
+            setTimeout(() => { screen.value = old; screen.focus(); }, 1000);
+        } 
+    }
+
+    window.dev = {
+        help: () => {
+            console.log("%c🧪 EM Lab Edition - Dev Commands", "color: #ffcc00; font-size: 16px; font-weight: bold;");
+            console.log("dev.setGold(amount, [playerId]) - Give Au to current player (or specific ID)");
+            console.log("dev.setScore(amount, [playerId]) - Give ΔEN to current player (or specific ID)");
+            console.log("dev.moveTo(pos)                - Instantly warp current player to tile position (0-63)");
+            console.log("dev.giveElement('Sym')         - Instantly give an element to the current player (e.g., 'O', 'Na')");
+            console.log("dev.triggerQuiz('solo'|'h2h')  - Force a pop quiz");
+            console.log("dev.expandBoard()              - Force the mystery inner ring to expand by 3 random elements");
+            console.log("dev.next()                     - Force skip to the next turn");
+        },
+        
+        setGold: (amount, id = turn) => {
+            if(!players[id]) return console.error("Invalid player ID");
+            players[id].gold = amount; updateUI();
+            console.log(`%c[Dev] Set Player ${id} (${players[id].name}) gold to ${amount}`, "color: var(--success)");
+        },
+
+        setScore: (amount, id = turn) => {
+            if(!players[id]) return console.error("Invalid player ID");
+            players[id].score = amount; updateUI();
+            console.log(`%c[Dev] Set Player ${id} (${players[id].name}) score to ${amount}`, "color: var(--success)");
+        },
+
+        moveTo: (pos) => {
+            if(pos < 0 || pos > 63) return console.error("Position must be between 0 and 63");
+            players[turn].pos = pos;
+            placeToken(players[turn].id, pos);
+            console.log(`%c[Dev] Warped ${players[turn].name} to tile ${pos}`, "color: var(--warning)");
+            processTile(); 
+        },
+
+        giveElement: (sym, id = turn) => {
+            const tile = boardData.find(b => b.sym && b.sym.toLowerCase() === sym.toLowerCase());
+            if(!tile) return console.error(`Element ${sym} not found. (Is it in an unexpanded mystery ring?)`);
+            if(tile.owner !== undefined) return console.error(`Element ${sym} is already owned by Player ${tile.owner}.`);
+            
+            tile.owner = id;
+            tile.level = 1;
+            players[id].inventory.push(tile);
+            
+            const tEl = document.getElementById(`tile-${tile.pos}`);
+            if(tEl) {
+                const contrastColor = getContrastYIQ(players[id].color);
+                tEl.style.backgroundColor = players[id].color;
+                tEl.style.color = contrastColor;
+                tEl.querySelector('strong').style.color = contrastColor;
+                const fineEl = tEl.querySelector('.fine-text');
+                if (fineEl) fineEl.style.color = contrastColor;
+                
+                const lvlEl = tEl.querySelector('.level-text');
+                if (lvlEl) {
+                    let bgCol = getLevelColor(1);
+                    lvlEl.style.border = `1px solid ${contrastColor}`;
+                    lvlEl.style.backgroundColor = bgCol;
+                    lvlEl.style.color = getContrastYIQ(bgCol);
+                    lvlEl.innerText = `Lv.1`;
+                }
+                tEl.style.border = `2px solid ${contrastColor}`;
+            }
+            updateUI();
+            console.log(`%c[Dev] Granted ${sym} to Player ${id} (${players[id].name})`, "color: var(--gold)");
+        },
+
+        triggerQuiz: (type) => {
+            if(type === 'solo') { console.log("[Dev] Triggering Solo Quiz"); openSoloQuiz(); }
+            else if(type === 'h2h') { console.log("[Dev] Triggering H2H Quiz"); openH2HQuiz(); }
+            else console.error("Type must be 'solo' or 'h2h'");
+        },
+
+        expandBoard: () => {
+            if (expansionElements.length > 0) {
+                let added = [];
+                let numToAdd = Math.min(3, expansionElements.length);
+                for(let i=0; i<numToAdd; i++) {
+                    let randIdx = Math.floor(Math.random() * expansionElements.length);
+                    let el = expansionElements.splice(randIdx, 1)[0];
+                    added.push(el);
+                    boardData.push(el);
+                }
+                renderBoard();
+                oneElementLeftWarned = false; // Reset the 1-element warning tracking
+                console.log(`%c[Dev] Board expanded manually. Progress: ${expansionElements.length} elements remaining`, "color: var(--success)");
+            } else {
+                console.log("[Dev] Board is already fully expanded.");
+            }
+        },
+
+        next: () => {
+            console.log(`%c[Dev] Skipped ${players[turn].name}'s turn.`, "color: var(--error)");
+            nextTurn();
+        }
+    };
+    
+    console.log("%cDev Tools Loaded! Type dev.help() to see commands.", "color: #2ed573; font-weight: bold; font-size: 14px;");
+    window.onload = renderSlide;
+</script>
+</body>
+<footer>
+    <p style="text-align: center; color: #888; font-size: 0.8rem; margin-top: 15px;">
+        <b>Lead Creators:</b> Anav, Dorian, Martin, & Devan
+        <span class="footer-divider" style="margin: 0 5px;">|</span>
+        <b>NO AI WAS NOT USED IN THE CREATION OF THIS PROJECT</b> 
+        <span class="footer-divider" style="margin: 0 5px;">|</span>
+        <i>Educational Project - Not Affiliated with Hasbro/Monopoly</i>
+    </p>
+</footer>
+</html>
